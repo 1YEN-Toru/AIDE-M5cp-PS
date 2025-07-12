@@ -1,0 +1,107 @@
+#######################################
+# Syntax Coloring Map M5cp-PS
+#######################################
+
+#######################################
+# Data types (KEYWORD1)
+#######################################
+
+int8	LITERAL1
+int16	LITERAL1
+int32	LITERAL1
+uint8	LITERAL1
+uint16	LITERAL1
+uint32	LITERAL1
+
+rtc_reg	KEYWORD1
+rtc_week	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+axp_get_bat_level	KEYWORD2
+axp_is_power_avail	KEYWORD2
+bcd2dec	KEYWORD2
+dec2bcd	KEYWORD2
+i2c1_read	KEYWORD2
+i2c1_write	KEYWORD2
+rtc_day_of_week	KEYWORD2
+rtc_get_date_time	KEYWORD2
+rtc_set_date_time	KEYWORD2
+strnum3c	KEYWORD2
+tft_draw_bat	KEYWORD2
+tft_draw_icon	KEYWORD2
+tft_draw_title	KEYWORD2
+
+is_sjis	KEYWORD2
+is_sjis1	KEYWORD2
+is_sjis2	KEYWORD2
+is_utf8	KEYWORD2
+sjis2kuten	KEYWORD2
+tft_clear	KEYWORD2
+tft_color	KEYWORD2
+tft_font_size	KEYWORD2
+tft_kprint	KEYWORD2
+tft_locate	KEYWORD2
+tft_rgb2pix	KEYWORD2
+unic2sjis	KEYWORD2
+utf82sjis	KEYWORD2
+utf82unic	KEYWORD2
+
+play_bgm	KEYWORD2
+play_bgm_init	KEYWORD2
+play_mml	KEYWORD2
+play_mml_init	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+LED_BUILTIN_OFF	LITERAL1
+LED_BUILTIN_ON	LITERAL1
+M5psErrBadParam	LITERAL1
+M5psErrBgmNoTask	LITERAL1
+M5psErrBgmTskAlv	LITERAL1
+M5psErrI2cRecv	LITERAL1
+M5psErrI2cSend	LITERAL1
+M5psErrNo	LITERAL1
+M5psErrNotRdy	LITERAL1
+M5psErrPlyBadMml	LITERAL1
+M5psErrPlyNoMml	LITERAL1
+SJIS_0CTRL	LITERAL1
+SJIS_1BYTE	LITERAL1
+SJIS_2BYTE	LITERAL1
+UTF8_0CTRL	LITERAL1
+UTF8_1BYTE	LITERAL1
+UTF8_2BYTE	LITERAL1
+UTF8_3BYTE	LITERAL1
+UTF8_4BYTE	LITERAL1
+axp_PWR_LONG	LITERAL1
+axp_PWR_SHORT	LITERAL1
+bgm_OPT_BLOCK	LITERAL1
+bgm_OPT_DEFAULT	LITERAL1
+bgm_OPT_WAIT	LITERAL1
+i2c_AXP192	LITERAL1
+i2c_BM8563	LITERAL1
+i2c_MPU6886	LITERAL1
+kpr_OPT_SJIS	LITERAL1
+kpr_OPT_UTF8	LITERAL1
+rtc_C_MON	LITERAL1
+rtc_DAY	LITERAL1
+rtc_HOUR	LITERAL1
+rtc_MINU	LITERAL1
+rtc_MSK_C	LITERAL1
+rtc_MSK_DAY	LITERAL1
+rtc_MSK_HOUR	LITERAL1
+rtc_MSK_MINU	LITERAL1
+rtc_MSK_MON	LITERAL1
+rtc_MSK_SEC	LITERAL1
+rtc_MSK_VL	LITERAL1
+rtc_MSK_WEEK	LITERAL1
+rtc_MSK_YEAR	LITERAL1
+rtc_SIZ_CNT	LITERAL1
+rtc_VL_SEC	LITERAL1
+rtc_WEEK	LITERAL1
+rtc_YEAR	LITERAL1
+

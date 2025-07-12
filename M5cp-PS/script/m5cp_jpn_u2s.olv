@@ -1,0 +1,299 @@
+model	"unicode→S-JIS変換テーブルを作る"
+{
+	// constants
+	var		MAX_KU_TEN=94;				// 区・点コードの最大値
+	var		MAX_KUTEN=sq (MAX_KU_TEN);	// 区点コードの最大値
+
+
+	// variables
+	macro	dir,file,ext;
+	pathsplit	$(pathname), dir,file,ext;
+
+
+	// procedures
+	procedure	fgets_uni	fin_unic
+	{
+		// fin_unicからバイナリデータを1バイトづつ読み出す。
+		// 読み出した1文字はUTF-8なので、16ビットunicodeに変換して返す。
+		// 最初の1文字だけ読み込んだら、改行コード(LF)まで読み飛ばす。
+		var		cod;
+
+		fgetb	fin_unic,cod;
+		if (cod<0x7f)
+		{
+			// 1 byte (7 bit) ascii code
+			fgets_uni=cod;
+		}
+		elif (@(cod&0xe0)=0xc0)
+		{
+			// 2 byte code
+			fgets_uni=@((cod&(~0xe0))<<6);
+			fgetb	fin_unic,cod;
+			fgets_uni=fgets_uni + @(cod&(~0xc0));
+		}
+		elif (@(cod&0xf0)=0xe0)
+		{
+			// 3 byte code
+			fgets_uni=@((cod&(~0xf0))<<6);
+			fgetb	fin_unic,cod;
+			fgets_uni=@((fgets_uni + cod&(~0xc0))<<6);
+			fgetb	fin_unic,cod;
+			fgets_uni=@(fgets_uni + cod&(~0xc0));
+		}
+		else
+		{
+			// ERROR: unsupported
+		}
+		// skip to LF code
+		repeat
+		{
+			fgetb	fin_unic,cod;
+		} until (cod=0x0a);
+	}
+
+
+	// 区点コード順に、全S-JIS文字を1文字/1行で出力する。
+	// ファイルを開く
+	var		fout;
+	fopen	fout,$(file)"_sjis.txt","w";
+
+	var		idx;
+
+	// 全S-JIS
+	var		codk, codt, cods;
+	macro	chr;
+	macro	buf;
+
+	idx=0;
+	while (idx<84*MAX_KU_TEN)			// 84区まで
+	{
+		progress	"S-JIS code...", 100*idx/(84*MAX_KU_TEN);
+
+		// 区点コードidx → S-JISコード
+		codk=int (idx/94) + 1;
+		codt=int (idx%94) + 1;
+		cods=0x8100 + 0x100*int ((codk - 1)/2);
+		if (codk≧63)
+		{
+			cods=cods + 0xe000 - 0xa000;
+		}
+		if (int ((codk - 1)%2)=0)
+		{
+			// odd: 1, 3, 5, ...
+			if (codt≦63)
+			{
+				cods=cods + @(0x40 + codt - 1);
+			}
+			else
+			{
+				cods=cods + @(0x80 + codt - 64);
+			}
+		}
+		else
+		{
+			// even: 2, 4, 6, ...
+			cods=cods + @(0x9f + codt - 1);
+		}
+		// 機種依存文字(13区)は対象から外す
+		if (codk=13)
+		{
+			cods=0a・;
+		}
+		// 半角カタカナコードを空き領域(14区)に差し込む
+		if (codk=14 & 1≦codt & codt<64)
+		{
+			// 半角カタカナ
+			cods=0xa1 + codt - 1;
+		}
+
+		// show character
+		num2chr		chr=cods;
+		fprint	fout,$(chr)$,;
+
+		// continue
+		idx=idx + 1;
+	}
+	progress	"",0;
+
+	// ファイルを閉じる
+	fclose	fout;
+
+
+	// S-JIS→unicode変換
+	ftxtcnv		$(file)"_sjis.txt",$(file)"_uni.txt", dst=csetUTF8;
+
+
+	// hashテーブル生成
+	var		fin_sjis;
+	var		fin_unic;
+	var		fout;
+	fopen	fin_sjis,$(file)"_sjis.txt","r";
+	fopen	fin_unic,$(file)"_uni.txt","r";
+	fopen	fout,$(file)"_out.txt","w";
+
+	var		cnt;
+	var		cod_sjis;
+	var		cod_unic;
+	macro	chr_sjis;
+	macro	hex_sjis;
+	macro	hex_unic;
+
+	cnt=0;
+	while (true)
+	{
+		progress	"generating hash table...",100*cnt/MAX_KUTEN;
+		cnt=cnt + 1;
+
+		fgets	fin_sjis,chr_sjis;
+		if (status)
+		{
+			break;
+		}
+
+		// get S-JIS
+		chr2num		cod_sjis=$(chr_sjis);
+		num2str		hex_sjis=cod_sjis,"%04x";
+		// get unicode
+		fgets_uni	fin_unic;
+		cod_unic=fgets_uni;
+		num2str		hex_unic=cod_unic,"%04x";
+		if (cod_unic=0x30fb & cod_sjis!=0x8145)
+		{
+			// undefined sjis character
+			mlet	hex_unic="0000";
+			continue;
+		}
+		// hash, unicode>>8, S-JIS
+		var		codh;
+		codh=@(cod_unic&0xff);
+		cod_unic=@((cod_unic>>8)&0xff);
+		macro	hex_hash;
+		num2str		hex_hash=codh,"%02x";
+		num2str		hex_unic=cod_unic,"%02x";
+		fprint	fout,"0x"$(hex_hash)",0x"$(hex_unic)",0x"$(hex_sjis)","
+				$(chr_sjis)$,;
+	}
+	progress	"",-1;
+
+	fclose	fin_sjis;
+	fclose	fin_unic;
+	fclose	fout;
+
+	// sort
+	fsort	$(file)"_out.txt","",uniq;
+
+
+	// generate c table
+	var		fin;
+	fopen	fin,$(file)"_out.txt","r";
+	mlet	fFS=",";
+	var		fout_hash;
+	fopen	fout_hash,$(file)"_hash.txt","w";
+	var		fout_lkup;
+	fopen	fout_lkup,$(file)"_lkup.txt","w";
+
+	// header
+	fprint	fout_hash,"const	uint16	unsj_hash_tab[]="
+			"		// jpn: hash table"$,;
+	fprint	fout_hash,"{"$,;
+	fprint	fout_lkup,"const	uint8	unsj_lkup_tab[]="
+			"		// jpn: look up table"$,;
+	fprint	fout_lkup,"{"$,;
+	fprint	fout_lkup,"	// unicode (High byte), S-JIS code (High, Low byte)"$,;
+
+	var		cnt;
+	var		hcnt;
+	var		cur_hash;
+	var		thash, tunic, tsjis;
+	macro	sunic, ssjs1, ssjs2;
+	cur_hash=-1;
+	cnt=0;
+	fgetl	fin,lbuf;
+	while (fNF>0)
+	{
+		thash=$(lbuf1);
+		tunic=$(lbuf2);
+		tsjis=$(lbuf3);
+		if (cur_hash!=thash)
+		{
+			if (hcnt%8=0 & cnt>0)
+			{
+				fprint	fout_hash,$,;
+			}
+			fprint	fout_hash,"	#,",cnt;
+			if (cnt<100)
+			{
+				fprint	fout_hash,"	";
+			}
+			cur_hash=thash;
+			hcnt=hcnt + 1;
+		}
+		num2str		sunic=tunic,"%02x";
+		num2str		ssjs1=@((tsjis>>8)&0xff),"%02x";
+		num2str		ssjs2=@(tsjis&0xff),"%02x";
+		fprint	fout_lkup,"	0x"$(sunic)", 0x"$(ssjs1)",0x"$(ssjs2)","$,;
+
+		// continue;
+		cnt=cnt + 1;
+		fgetl	fin,lbuf;
+	}
+	fprint	fout_hash,$,"	#"$,,cnt;
+	fprint	fout_hash,"};"$,;
+	fprint	fout_lkup,"};"$,;
+
+	fclose	fin;
+	fclose	fout_hash;
+	fclose	fout_lkup;
+
+
+	// concatnate
+	var		fout;
+	fopen	fout,$(file)".cpp","w";
+
+	fprint	fout,"//"$,;
+	fprint	fout,"//	M5StickC Plus postscript library"$,;
+	fprint	fout,"//		conversion hash table module"$,;
+	fprint	fout,"//		(c) 2022	1YEN Toru"$,;
+	fprint	fout,"//"$,;
+	fprint	fout,"//	Generated using script: "$(file)".olv"$,;
+	fprint	fout,"//"$,;
+	fprint	fout,$,;
+	fprint	fout,$,;
+	fprint	fout,"##include	<m5cp_ps.h>"$,;
+	fprint	fout,$,;
+	fprint	fout,$,;
+
+	fopen	fin,$(file)"_hash.txt","r";
+	fgets	fin,lbuf;
+	while (!status)
+	{
+		fprint	fout,$(lbuf)$,;
+		// continue
+		fgets	fin,lbuf;
+	}
+	fclose	fin;
+
+	fopen	fin,$(file)"_lkup.txt","r";
+	fgets	fin,lbuf;
+	while (!status)
+	{
+		fprint	fout,$(lbuf)$,;
+		// continue
+		fgets	fin,lbuf;
+	}
+	fclose	fin;
+
+	fclose	fout;
+
+
+	// delete temporary files
+	fdel	$(file)"_lkup.txt";
+	fdel	$(file)"_hash.txt";
+	fdel	$(file)"_out.txt";
+	fdel	$(file)"_sjis.txt";
+	fdel	$(file)"_uni.txt";
+
+
+	leave	stop_error;
+}
+
