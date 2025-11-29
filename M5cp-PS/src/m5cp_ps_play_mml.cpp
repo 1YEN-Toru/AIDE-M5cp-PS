@@ -25,7 +25,7 @@
 //
 //	2019/07/20	ver.1.02
 //		corresponding to case insensitive mml
-//		fixed: frequency -> period calculation
+//		fix: frequency -> period calculation
 //		corresponding to non-blocking play
 //
 //	2019/05/18	ver.1.00
