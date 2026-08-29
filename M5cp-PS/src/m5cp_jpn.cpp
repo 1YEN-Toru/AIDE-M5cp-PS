@@ -5,11 +5,15 @@
 //
 
 
+#ifdef		ARDUINO_M5STACK_STICKC_PLUS
 #include	<M5StickCPlus.h>
+#else	//	ARDUINO_M5STACK_STICKC_PLUS
+#include	<M5StickCPlus2.h>
+#endif	//	ARDUINO_M5STACK_STICKC_PLUS
 #include	<m5cp_ps.h>
 
 
-#ifdef		ARDUINO_M5Stick_C_PLUS
+#ifdef		ARDUINO_M5STACK_STICKC_PLUSX
 #else	// ERROR:
 #error	"This architecture is not supported."
 #endif
@@ -392,6 +396,22 @@ void	tft_clear (void)
 	tft_locate (0,0);
 }
 
+inline	void	tft_draw_bitmap (
+int		lx,
+int		ly,
+int		wid,
+int		hei,
+const	void	*dat,
+int		tpix=-1)
+{
+	// replace for M5.Lcd.drawBitmap() method
+
+	if (tpix>=0)
+		M5.Lcd.pushImage (lx,ly,wid,hei, (uint16 *)dat, uint16 (tpix&0xffffU));
+	else
+		M5.Lcd.pushImage (lx,ly,wid,hei, (uint16 *)dat);
+}
+
 void	tft_putchr_kz (
 int		codkt)
 {
@@ -404,12 +424,6 @@ int		codkt)
 	int		siz;
 	uint16	dat;
 	const	uint16	*fnt;
-
-	if (tft_prn_font_kz==NULL)
-	{
-		// ERROR: no font data, ignore
-		return;
-	}
 
 	// parameter
 	if (codkt<0 || 84*tft_MAX_KU_TEN<=codkt)
@@ -446,12 +460,8 @@ int		codkt)
 	}
 
 	// draw
-	if (tft_prn_fg==tft_prn_bg)
-		M5.Lcd.drawBitmap (tft_prn_lx,tft_prn_ly,siz,tft_CHR_SIZ,
-			&tft_bitmap[0],~tft_prn_fg);
-	else
-		M5.Lcd.drawBitmap (tft_prn_lx,tft_prn_ly,siz,tft_CHR_SIZ,
-			&tft_bitmap[0]);
+	tft_draw_bitmap (tft_prn_lx,tft_prn_ly, siz,tft_CHR_SIZ, &tft_bitmap[0],
+		(tft_prn_fg==tft_prn_bg)? ((~tft_prn_fg)&0xffffU): -1);
 }
 
 int		tft_ksymbol_chr (

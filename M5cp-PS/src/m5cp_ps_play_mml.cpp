@@ -32,7 +32,11 @@
 //
 
 
+#ifdef		ARDUINO_M5STACK_STICKC_PLUS
 #include	<M5StickCPlus.h>
+#else	//	ARDUINO_M5STACK_STICKC_PLUS
+#include	<M5StickCPlus2.h>
+#endif	//	ARDUINO_M5STACK_STICKC_PLUS
 #include	<m5cp_ps.h>
 
 
@@ -44,6 +48,7 @@ static	int		(*ply_callbk) (void);	// ply: pointer to call back function
 volatile	const	char	*bgm_mml;
 volatile	bool	bgm_rdy;
 volatile	int		bgm_err;
+int		buz_freq=2800;
 int		ply_key_ofst;
 uint16	ply_msec_zen;
 
@@ -202,27 +207,27 @@ void	*htsk)
 		if (frq<20. || 20e3<frq)
 		{
 			// rest
-			M5.Beep.mute ();
+			buz_mute ();
 			while (millis () - msec_start<=msec_len/2)
 				vTaskDelay (1/portTICK_PERIOD_MS);
 		}
 		else
 		{
 			// note
-			M5.Beep.tone (frq);
+			buz_tone (frq);
 			while (millis () - msec_start<=msec_len/2 - msec_len/16)
 				vTaskDelay (1/portTICK_PERIOD_MS);
 			if (!(msec_len&0x01))
-				M5.Beep.mute ();
+				buz_mute ();
 			while (millis () - msec_start<=msec_len/2)
 				vTaskDelay (1/portTICK_PERIOD_MS);
-			M5.Beep.mute ();
+			buz_mute ();
 		}
 		// next note
 		msec_start += msec_len/2;
 	}
 
-	return (M5psErrNo);
+	return (rtncod);
 }
 
 int		play_mml_init (void)
@@ -234,6 +239,9 @@ int		play_mml_init (void)
 	ply_key_ofst=0;
 	ply_ptr=NULL;
 	ply_callbk=NULL;
+
+	// set PWM output to SPEAKER_PIN (G2)
+	ledcAttach (SPEAKER_PIN, 440, 13);
 
 	return (M5psErrNo);
 }
@@ -382,9 +390,9 @@ int		play_bgm_init (void)
 		Serial.println ("ERR: could not create task");
 		tft_locate (8,8);
 		tft_kprint ("ERR: could not create task");
-		M5.Beep.beep ();
+		buz_beep ();
 		delay (500);
-		M5.Beep.mute ();
+		buz_mute ();
 		for (;;)
 			;
 	}
@@ -396,3 +404,44 @@ int		play_bgm_init (void)
 	return (M5psErrNo);
 }
 
+
+int		buz_set_beep (
+int		freq,
+int		durt)
+{
+	// replace for M5.Beep.setBeep() method
+	int		rtncod;
+
+	buz_freq=freq;
+//	buz_durt=durt;						// not used in this library, ignore
+
+	// set PWM output to SPEAKER_PIN (G2)
+	rtncod=ledcAttach (SPEAKER_PIN, freq, 13);
+
+	return (rtncod);
+}
+
+int		buz_tone (
+int		freq)
+{
+	// replace for M5.Beep.tone() method
+	int		rtncod;
+
+	rtncod=ledcWriteTone (SPEAKER_PIN, freq);
+
+	return (rtncod);
+}
+
+int		buz_beep (void)
+{
+	// replace for M5.Beep.beep() method
+
+	return (buz_tone (buz_freq));
+}
+
+int		buz_mute (void)
+{
+	// replace for M5.Beep.mute() method
+
+	return (buz_tone (0));
+}

@@ -5,11 +5,15 @@
 //
 
 
+#ifdef		ARDUINO_M5STACK_STICKC_PLUS
 #include	<M5StickCPlus.h>
+#else	//	ARDUINO_M5STACK_STICKC_PLUS
+#include	<M5StickCPlus2.h>
+#endif	//	ARDUINO_M5STACK_STICKC_PLUS
 #include	<m5cp_ps.h>
 
 
-#ifdef		ARDUINO_M5Stick_C_PLUS
+#ifdef		ARDUINO_M5STACK_STICKC_PLUSX
 #else	// ERROR:
 #error	"This architecture is not supported."
 #endif
@@ -229,11 +233,22 @@ uint8	sdat)
 bool	axp_is_power_avail (void)
 {
 	// is power (VBUS or ACIN) available
-	uint8	dat;
+	int		dat;
 
 	dat=i2c1_read (i2c_AXP192,axp_REG_PWR_STAT,1,NULL);
 
-	return ((dat&0x54)? true: false);
+	return ((dat>=M5psErrNo && (dat&0x54))? true: false);
+}
+
+inline	float	axp_get_bat_volt (void)
+{
+	// replace for M5.Axp.GetBatVoltage() method
+
+#ifdef		ARDUINO_M5STACK_STICKC_PLUS
+	return (M5.Axp.GetBatVoltage ());
+#else	//	ARDUINO_M5STACK_STICKC_PLUS
+	return (M5.Power.getBatteryVoltage ()/1000.);
+#endif	//	ARDUINO_M5STACK_STICKC_PLUS
 }
 
 int		axp_get_bat_level (
@@ -251,7 +266,7 @@ int		full_scale)
 	}
 
 	// level
-	lv_bat=M5.Axp.GetBatVoltage ();
+	lv_bat=axp_get_bat_volt ();
 	if (lv_bat==0.)
 	{
 		// WARNING: AXP192 was not ready
@@ -268,7 +283,6 @@ void	rtc_get_date_time (
 uint8	*rbuf)
 {
 	// get date & time from BM8563(RTC)
-	int		idx;
 
 	// the rtc counter must be read in one bus transaction.
 	i2c1_read (i2c_BM8563,rtc_REG_CNT,rtc_SIZ_CNT,rbuf);
@@ -463,7 +477,7 @@ void	tft_draw_bat (void)
 		// WARNING: AXP192 was not ready
 		// wait AXP192's stabilization
 		msec_start=millis ();
-		while (M5.Axp.GetBatVoltage ()==0. && millis () - msec_start<500)
+		while (axp_get_bat_volt ()==0. && millis () - msec_start<500)
 			delay (50);
 		bat_lev=axp_get_bat_level ();
 		if (bat_lev<0)

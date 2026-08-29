@@ -4,8 +4,14 @@
 //		(c) 2022	1YEN Toru
 //
 //
+//	2026/08/29	ver.1.12
+//		corresponding to board.m5stack.esp32 ver.3.2.8 (Boo!)
+//		corresponding to M5StickCPlus ver.0.1.1 (Boo!)
+//		add: buz_tone(), buz_set_beep(), buz_beep(), buz_mute()
+//		add: constants for RGB565 pixel
+//
 //	2024/03/30	ver.1.10
-//		update: MML: toupper() for "T" and "K" command
+//		upd: MML: toupper() for "T" and "K" command
 //
 //	2023/05/13	ver.1.08
 //		add: play_mml(); play MML function (blocking)
@@ -30,10 +36,11 @@
 
 
 #ifndef		M5CP_PS
-#define		M5CP_PS		"1.08"
+#define		M5CP_PS		"1.12"
 
 
 #include	<Arduino.h>
+#include	<Wire.h>
 
 
 #ifndef		XINTX
@@ -47,13 +54,30 @@ typedef		unsigned	long	uint32;
 #endif	//	XINTX
 
 
-#ifndef		LED_BUILTIN
+#ifdef		LED_BUILTIN
+#else	//	LED_BUILTIN
+#ifdef		ARDUINO_M5STACK_STICKC_PLUS
 #define		LED_BUILTIN		10
-#endif	//	LED_BUILTIN
-#ifndef		LED_BUILTIN_ON
 #define		LED_BUILTIN_ON		LOW
 #define		LED_BUILTIN_OFF		HIGH
-#endif	//	LED_BUILTIN_ON
+#else	//	ARDUINO_M5STACK_STICKC_PLUS
+#define		LED_BUILTIN		19
+#define		LED_BUILTIN_ON		HIGH
+#define		LED_BUILTIN_OFF		LOW
+#endif	//	ARDUINO_M5STACK_STICKC_PLUS
+#endif	//	LED_BUILTIN
+
+#ifdef		ARDUINO_M5STACK_STICKC_PLUS
+#define		ARDUINO_M5Stick_C_PLUS		// old declaration removed, boo!
+#define		ARDUINO_M5STACK_STICKC_PLUSX
+#elif		ARDUINO_M5STACK_STICKC_PLUS2
+#define		ARDUINO_M5STACK_STICKC_PLUSX
+#endif
+
+#ifdef		SPEAKER_PIN
+#else	//	SPEAKER_PIN
+#define		SPEAKER_PIN		2			// G2 for M5StickC Plus&2
+#endif	//	SPEAKER_PIN
 
 
 const	int		M5psErrNo=0;			// err: No error
@@ -87,6 +111,25 @@ const	int		tft_CHR_SIZ=tft_FNT_SIZ + tft_FNT_MGN;	// tft: char. size [dot]
 const	int		tft_MAX_BTMP=sq (tft_CHR_SIZ);	// tft: bitmap size [dot**2]
 const	int		tft_MAX_KU_TEN=94;		// tft: maximum ku & ten code
 const	int		tft_MAX_KUTEN=sq (tft_MAX_KU_TEN);	// tft: maximum kuten code
+#define			tft_RGB565(bb,gg,rr)	/* tft: RGB565 pixel */\
+					(((rr)>>3)<<11)|(((gg)>>2)<<5)|((bb)>>3);
+const	int		tft_BLACK=tft_RGB565 (0x00,0x00,0x00);		// HUE/360
+const	int		tft_BLUE=tft_RGB565 (0xff,0x00,0x00);		// 240
+const	int		tft_RED=tft_RGB565 (0x00,0x00,0xff);		// 0
+const	int		tft_MAGENTA=tft_RGB565 (0xff,0x00,0xff);	// 300
+const	int		tft_GREEN=tft_RGB565 (0x00,0xff,0x00);		// 120
+const	int		tft_CYAN=tft_RGB565 (0xff,0xff,0x00);		// 180
+const	int		tft_YELLOW=tft_RGB565 (0x00,0xff,0xff);		// 60
+const	int		tft_WHITE=tft_RGB565 (0xff,0xff,0xff)
+const	int		tft_LIGHT=tft_RGB565 (0xc0,0xc0,0xc0)
+const	int		tft_GRAY=tft_RGB565 (0x80,0x80,0x80)
+const	int		tft_DARK=tft_RGB565 (0x40,0x40,0x40)
+const	int		tft_PURPLE=tft_RGB565 (0xff,0x00,0x80);		// 270
+const	int		tft_PINK=tft_RGB565 (0x80,0x00,0xff);		// 330
+const	int		tft_ORANGE=tft_RGB565 (0x00,0x80,0xff);		// 30
+const	int		tft_LAWN=tft_RGB565 (0x00,0xff,0x80);		// 90
+const	int		tft_EMERALD=tft_RGB565 (0x80,0xff,0x00);	// 150
+const	int		tft_COBALT=tft_RGB565 (0xff,0x80,0x00);		// 210
 const	int		rtc_REG_CNT=0x02;		// rtc: reg: counter register top
 const	int		rtc_SIZ_CNT=7;			// rtc: reg: counter register size
 const	int		rtc_VL_SEC=0;			// rtc: rtc_reg: VL, second (BCD)
@@ -257,6 +300,17 @@ int		play_bgm (
 	int		opt=bgm_OPT_DEFAULT);
 
 int		play_bgm_init (void);
+
+int		buz_set_beep (
+	int		freq,
+	int		durt);
+
+int		buz_tone (
+	int		freq);
+
+int		buz_beep (void);
+
+int		buz_mute (void);
 
 
 #endif	//	M5CP_PS
